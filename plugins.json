@@ -1,0 +1,23 @@
+{
+    "cats": {
+        "name": "cats",
+        "baseUrl": "https://api.thecatapi.com/v1/images/search",
+        "pathToData": "url",
+        "description": "cat pictures",
+        "isNew": false
+    },
+    "dogs": {
+        "name": "dogs",
+        "baseUrl": "https://api.thedogapi.com/v1/images/search",
+        "pathToData": "url",
+        "description": "dog pictures",
+        "isNew": false
+    },
+    "advice": {
+        "name": "advice",
+        "baseUrl": "https://api.adviceslip.com/advice",
+        "pathToData": "slip.advice",
+        "description": "great advice",
+        "isNew": false
+    }
+}
