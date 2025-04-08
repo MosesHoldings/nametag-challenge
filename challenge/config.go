@@ -2,15 +2,18 @@ package challenge
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 )
 
 type Config struct {
-	UpdateFrequency     map[string]int `json:"update_frequency"`
-	PluginsEnabled      []string       `json:"plugins_enabled"`
-	AutoUpdateEnabled   bool           `json:"auto_update_enabled"`
-	AutoUpdateFrequency int            `json:"auto_update_frequency"`
+	UpdateFrequency     map[string]int `json:"updateFrequency"`
+	PluginsEnabled      []string       `json:"pluginsEnabled"`
+	AutoUpdateEnabled   bool           `json:"autoUpdateEnabled"`
+	AutoUpdateFrequency int            `json:"autoUpdateFrequency"`
 }
 
 func (app *DashboardApp) loadConfig() Config {
@@ -23,11 +26,10 @@ func (app *DashboardApp) loadConfig() Config {
 
 		config = Config{
 			UpdateFrequency: map[string]int{
-				"cats":   300, // seconds (5 min)
-				"dogs":   420, // seconds (7 min)
-				"advice": 360, // seconds (6 min)
+				"cats": 300, // seconds (5 min)
+				"dogs": 420, // seconds (7 min)
 			},
-			PluginsEnabled:      []string{"cats", "dogs", "advice"},
+			PluginsEnabled:      []string{"cats", "dogs"},
 			AutoUpdateEnabled:   true,
 			AutoUpdateFrequency: 86400, // seconds (1 day)
 		}
@@ -61,4 +63,34 @@ func (app *DashboardApp) saveConfig(config Config) {
 
 	app.Config = config
 	log.Println("Configuration saved to config.json")
+}
+
+func (app *DashboardApp) handleConfig(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		respondWithJSON(w, http.StatusOK, app.Config)
+
+	case "POST":
+		var config Config
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Error reading request body")
+			return
+		}
+		defer r.Body.Close()
+
+		err = json.Unmarshal(body, &config)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Error unmarshalling JSON")
+			return
+		}
+		log.Printf("New Config: %#v\n\n", config)
+		app.saveConfig(config)
+		respondWithJSON(w, http.StatusOK, app.Config)
+
+	default:
+		respondWithError(w, http.StatusMethodNotAllowed, fmt.Sprintf("Error %s not supported", r.Method))
+	}
+
 }

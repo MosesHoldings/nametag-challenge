@@ -22,6 +22,7 @@ type Plugin struct {
 	BaseURL     string `json:"baseUrl"`
 	PathToData  string `json:"pathToData"`
 	Description string `json:"description"`
+	TypeOfData  int    `json:"typeOfData"`
 	IsNew       bool   `json:"isNew"`
 }
 
@@ -79,6 +80,7 @@ func (p *Plugin) FetchData() (map[string]interface{}, error) {
 		result = resp[0]
 	}
 
+	log.Printf("The result: %#v\n\n", result)
 	if strings.Contains(p.PathToData, ".") {
 		paths := strings.Split(p.PathToData, ".")
 		pathsLength := len(paths) - 1
@@ -96,30 +98,26 @@ func (p *Plugin) FetchData() (map[string]interface{}, error) {
 			}
 		}
 		result = temp
-		result["_meta"] = map[string]interface{}{
-			"collected_at": time.Now().Format(time.RFC3339),
-		}
-
-		p.updateHistoricalData(result)
-		return result, nil
-	}
-
-	for key := range result {
-		if key != p.PathToData {
-			delete(result, key)
+	} else {
+		for key := range result {
+			if key != p.PathToData {
+				delete(result, key)
+			}
 		}
 	}
+
 	result["_meta"] = map[string]interface{}{
-		"collected_at": time.Now().Format(time.RFC3339),
+		"collectedAt": time.Now().Format(time.RFC3339),
+		"typeOfData":  p.TypeOfData,
 	}
+
 	p.updateHistoricalData(result)
+
 	return result, nil
 }
 
 func (p *Plugin) updateHistoricalData(currentData map[string]interface{}) {
-	log.Printf("%#v\n\n", currentData)
 	historyFile := filepath.Join("data", fmt.Sprintf("%s_history.json", p.Name))
-	log.Printf("%#v\n\n", historyFile)
 	var history []map[string]interface{}
 
 	data, err := os.ReadFile(historyFile)
@@ -141,7 +139,6 @@ func (p *Plugin) updateHistoricalData(currentData map[string]interface{}) {
 		history = history[len(history)-1000:]
 	}
 
-	log.Printf("%#v\n\n", history)
 	jsonData, err := json.MarshalIndent(history, "", "    ")
 	if err != nil {
 		log.Printf("Failed to serialize %s history: %v", p.Name, err)
