@@ -62,22 +62,21 @@ func NewDashboardApp() *DashboardApp {
 		}
 		if enabled {
 			app.DataSources[key] = app.AvailableSources[key]
-			delete(app.AvailableSources, key)
 		}
 	}
 
-	for plugin := range app.DataSources {
-		if _, exists := app.Config.UpdateFrequency[plugin]; exists {
-			interval := app.Config.UpdateFrequency[plugin]
-			scheduleExpr := fmt.Sprintf("@every %ds", interval)
-			log.Printf("%#v\n\n", app.DataSources[plugin])
-			app.Scheduler.AddFunc(scheduleExpr, func() {
-				app.DataSources[plugin].FetchData()
-			})
+	// for plugin := range app.DataSources {
+	// 	if _, exists := app.Config.UpdateFrequency[plugin]; exists {
+	// 		interval := app.Config.UpdateFrequency[plugin]
+	// 		scheduleExpr := fmt.Sprintf("@every %ds", interval)
+	// 		log.Printf("%#v\n\n", app.DataSources[plugin])
+	// 		app.Scheduler.AddFunc(scheduleExpr, func() {
+	// 			app.DataSources[plugin].FetchData()
+	// 		})
 
-			log.Printf("Scheduled updates for %s every %d seconds", plugin, interval)
-		}
-	}
+	// 		log.Printf("Scheduled updates for %s every %d seconds", plugin, interval)
+	// 	}
+	// }
 
 	app.Router = mux.NewRouter()
 
@@ -86,24 +85,33 @@ func NewDashboardApp() *DashboardApp {
 }
 
 func (app *DashboardApp) InitializeRoutes() {
-	app.Router.HandleFunc("/api/data/{source}", func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		source := vars["source"]
+	app.Router.HandleFunc("/api/datasources", CorsHandler(app.getAvaiableDataSources)).Methods("GET")
 
-		if _, exists := app.DataSources[source]; !exists {
-			respondWithError(w, http.StatusNotFound, "Data source not found")
-			return
-		}
+	app.Router.HandleFunc("/api/data/{source}", CorsHandler(app.getSourceData)).Methods("GET")
 
-		result, err := app.DataSources[source].FetchData()
-		if err != nil {
-			respondWithError(w, http.StatusBadRequest, err.Error())
-			return
-		}
+	app.Router.HandleFunc("/api/config", CorsHandler(app.handleConfig))
+}
 
-		respondWithJSON(w, http.StatusOK, result)
+func (app *DashboardApp) getSourceData(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	source := vars["source"]
 
-	})
+	if _, exists := app.DataSources[source]; !exists {
+		respondWithError(w, http.StatusNotFound, "Data source not found")
+		return
+	}
+
+	result, err := app.DataSources[source].FetchData()
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, result)
+}
+
+func (app *DashboardApp) getAvaiableDataSources(w http.ResponseWriter, r *http.Request) {
+	respondWithJSON(w, http.StatusOK, app.AvailableSources)
 }
 
 func (app *DashboardApp) checkForUpdates() {
@@ -152,6 +160,44 @@ func (app *DashboardApp) checkForUpdates() {
 	}
 }
 
+func (app *DashboardApp) configUpdate() {
+	app.mutex.Lock()
+	defer app.mutex.Unlock()
+
+	log.Println("Updating self-configuration based on usage patterns")
+
+	configChanged := false
+
+	// Example: If a data source is viewed frequently, update it more often
+	// for source, views := range app.UsageStats {
+	// 	if frequency, exists := app.Config.UpdateFrequency[source]; exists {
+	// 		if views > 100 {  // High usage threshold
+	// 			// Update more frequently (reduce interval by 20%)
+	// 			newFrequency := frequency * 80 / 100
+	// 			if newFrequency < 60 {
+	// 				newFrequency = 60  // Minimum 1 minute
+	// 			}
+
+	// 			if newFrequency != frequency {
+	// 				app.Config.UpdateFrequency[source] = newFrequency
+	// 				log.Printf("Increased update frequency for %s to %d seconds based on usage", source, newFrequency)
+	// 				configChanged = true
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	if configChanged {
+		app.saveConfig(app.Config)
+
+		// Restart scheduler with new intervals
+		app.Scheduler.Stop()
+		app.Scheduler = cron.New()
+		//	app.loadPlugins()
+		app.Scheduler.Start()
+	}
+}
+
 func (app *DashboardApp) Start() {
 	scheduleExpr := fmt.Sprintf("@every %ds", app.Config.AutoUpdateFrequency)
 	app.Scheduler.AddFunc(scheduleExpr, app.checkForUpdates)
@@ -159,6 +205,24 @@ func (app *DashboardApp) Start() {
 	app.Scheduler.Start()
 
 	log.Println("Dashboard started successfully")
+}
+
+func CorsHandler(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		//fmt.Printf("preflight detected: %+v\n\n", r.Header)
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, DELETE, PUT")
+		w.Header().Set("Access-Control-Allow-Headers", "content-type, Authorization")
+		w.Header().Set("Access-Control-Max-Age", "86400")
+
+		if r.Method == "OPTIONS" {
+			//http.Error(w, "No Content", http.StatusNoContent)
+			return
+		}
+
+		next(w, r)
+	}
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {
