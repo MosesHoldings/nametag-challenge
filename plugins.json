@@ -1,23 +1,34 @@
 {
     "cats": {
-        "name": "cats",
+        "name": "Cats",
         "baseUrl": "https://api.thecatapi.com/v1/images/search",
         "pathToData": "url",
-        "description": "cat pictures",
+        "description": "Cat pictures",
+        "typeOfData": 2,
         "isNew": false
     },
     "dogs": {
-        "name": "dogs",
+        "name": "Dogs",
         "baseUrl": "https://api.thedogapi.com/v1/images/search",
         "pathToData": "url",
-        "description": "dog pictures",
+        "description": "Dog pictures",
+        "typeOfData": 2,
         "isNew": false
     },
-    "advice": {
-        "name": "advice",
-        "baseUrl": "https://api.adviceslip.com/advice",
-        "pathToData": "slip.advice",
-        "description": "great advice",
-        "isNew": false
+    "cocktails": {
+        "name": "Cocktails",
+        "baseUrl": "https://www.thecocktaildb.com/api/json/v1/1/random.php",
+        "pathToData": "drinks.[0].strDrinkThumb",
+        "description": "Cocktail pictures",
+        "typeOfData": 2,
+        "isNew": true
+    },
+    "jokes": {
+        "name": "Jokes",
+        "baseUrl": "https://icanhazdadjoke.com/",
+        "pathToData": "joke",
+        "description": "Dad jokes",
+        "typeOfData": 1,
+        "isNew": true
     }
 }

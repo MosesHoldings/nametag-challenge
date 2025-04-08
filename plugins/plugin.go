@@ -150,6 +150,7 @@ func (p *Plugin) updateHistoricalData(currentData map[string]interface{}) {
 			history = []map[string]interface{}{}
 		}
 	}
+
 	history = append(history, map[string]interface{}{
 		"timestamp": currentData["_meta"].(map[string]interface{})["collected_at"],
 		"data":      currentData,

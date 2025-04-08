@@ -1,7 +1,6 @@
 package challenge
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 
 	pl "example/plugins"
 
+	"github.com/go-git/go-git/config"
 	"github.com/go-git/go-git/v5"
 	"github.com/gorilla/mux"
 	"github.com/robfig/cron/v3"
@@ -121,81 +121,28 @@ func (app *DashboardApp) checkForUpdates() {
 
 	log.Println("Checking for code updates...")
 
-	repo, err := git.PlainOpen(".")
+	repoPath := "/path/to/your/git/repository"
+	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
 		log.Printf("Error opening git repository: %v", err)
 		return
 	}
 
-	worktree, err := repo.Worktree()
-	if err != nil {
-		log.Printf("Error getting worktree: %v", err)
-		return
-	}
+	commitHash := "6264fafeecd62fa0e1339f31507d0a03b751beaa"
 
-	head, err := repo.Head()
-	if err != nil {
-		log.Printf("Error getting HEAD: %v", err)
-		return
-	}
-	currentHash := head.Hash().String()
-
-	err = worktree.Pull(&git.PullOptions{RemoteName: "origin"})
+	err = repo.Fetch(&git.FetchOptions{
+		RemoteName: "origin",
+		RefSpecs: []config.RefSpec{
+			config.RefSpec(commitHash + ":" + commitHash),
+		},
+	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
-		log.Printf("Error pulling updates: %v", err)
-		return
-	}
-
-	newHead, err := repo.Head()
-	if err != nil {
-		log.Printf("Error getting new HEAD: %v", err)
-		return
-	}
-	newHash := newHead.Hash().String()
-
-	if currentHash != newHash {
-		log.Println("Updates pulled successfully")
-	} else {
 		log.Println("No updates available")
+		return
 	}
-}
 
-func (app *DashboardApp) configUpdate() {
-	app.mutex.Lock()
-	defer app.mutex.Unlock()
-
-	log.Println("Updating self-configuration based on usage patterns")
-
-	configChanged := false
-
-	// Example: If a data source is viewed frequently, update it more often
-	// for source, views := range app.UsageStats {
-	// 	if frequency, exists := app.Config.UpdateFrequency[source]; exists {
-	// 		if views > 100 {  // High usage threshold
-	// 			// Update more frequently (reduce interval by 20%)
-	// 			newFrequency := frequency * 80 / 100
-	// 			if newFrequency < 60 {
-	// 				newFrequency = 60  // Minimum 1 minute
-	// 			}
-
-	// 			if newFrequency != frequency {
-	// 				app.Config.UpdateFrequency[source] = newFrequency
-	// 				log.Printf("Increased update frequency for %s to %d seconds based on usage", source, newFrequency)
-	// 				configChanged = true
-	// 			}
-	// 		}
-	// 	}
-	// }
-
-	if configChanged {
-		app.saveConfig(app.Config)
-
-		// Restart scheduler with new intervals
-		app.Scheduler.Stop()
-		app.Scheduler = cron.New()
-		//	app.loadPlugins()
-		app.Scheduler.Start()
-	}
+	log.Println("Updates pulled successfully")
+	restartApp()
 }
 
 func (app *DashboardApp) Start() {
@@ -205,34 +152,4 @@ func (app *DashboardApp) Start() {
 	app.Scheduler.Start()
 
 	log.Println("Dashboard started successfully")
-}
-
-func CorsHandler(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		//fmt.Printf("preflight detected: %+v\n\n", r.Header)
-		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, DELETE, PUT")
-		w.Header().Set("Access-Control-Allow-Headers", "content-type, Authorization")
-		w.Header().Set("Access-Control-Max-Age", "86400")
-
-		if r.Method == "OPTIONS" {
-			//http.Error(w, "No Content", http.StatusNoContent)
-			return
-		}
-
-		next(w, r)
-	}
-}
-
-func respondWithError(w http.ResponseWriter, code int, message string) {
-	respondWithJSON(w, code, map[string]string{"error": message})
-}
-
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	response, _ := json.Marshal(payload)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	w.Write(response)
 }
