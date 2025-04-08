@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -53,10 +54,20 @@ func LoadAvailablePlugins(pluginsFile string) (map[string]DataSource, error) {
 func (p *Plugin) FetchData() (map[string]interface{}, error) {
 	var result map[string]interface{}
 	var resp []map[string]interface{}
+	var tempResult []interface{}
 
 	url := p.BaseURL
 
-	response, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return nil, errors.New("error creating request")
+	}
+
+	req.Header.Add("Accept", "application/json")
+
+	client := &http.Client{}
+	response, err := client.Do(req)
 	if err != nil {
 		return nil, errors.New("get response failed")
 	}
@@ -87,14 +98,23 @@ func (p *Plugin) FetchData() (map[string]interface{}, error) {
 
 		temp := result
 		for i, path := range paths {
-			for key := range temp {
-				if key != path {
-					delete(temp, key)
+			if strings.Contains(path, "[") {
+				log.Printf("Path: %#v\n\n", path)
+				continue
+			} else {
+				for key := range temp {
+					if key != path {
+						delete(temp, key)
+					}
 				}
 			}
-
 			if i < pathsLength {
-				temp = temp[path].(map[string]interface{})
+				if reflect.TypeOf(temp[path]) == reflect.TypeOf(tempResult) {
+					tempResult = temp[path].([]interface{})
+					temp = tempResult[0].(map[string]interface{})
+				} else {
+					temp = temp[path].(map[string]interface{})
+				}
 			}
 		}
 		result = temp
