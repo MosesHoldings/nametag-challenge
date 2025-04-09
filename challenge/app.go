@@ -10,7 +10,6 @@ import (
 
 	pl "example/plugins"
 
-	"github.com/go-git/go-git/config"
 	"github.com/go-git/go-git/v5"
 	"github.com/gorilla/mux"
 	"github.com/robfig/cron/v3"
@@ -128,21 +127,38 @@ func (app *DashboardApp) checkForUpdates() {
 		return
 	}
 
-	commitHash := "6264fafeecd62fa0e1339f31507d0a03b751beaa"
-
-	err = repo.Fetch(&git.FetchOptions{
-		RemoteName: "origin",
-		RefSpecs: []config.RefSpec{
-			config.RefSpec(commitHash + ":" + commitHash),
-		},
-	})
-	if err != nil && err != git.NoErrAlreadyUpToDate {
-		log.Println("No updates available")
+	worktree, err := repo.Worktree()
+	if err != nil {
+		log.Printf("Error getting worktree: %v", err)
 		return
 	}
 
-	log.Println("Updates pulled successfully")
-	restartApp()
+	head, err := repo.Head()
+	if err != nil {
+		log.Printf("Error getting HEAD: %v", err)
+		return
+	}
+	currentHash := head.Hash().String()
+
+	err = worktree.Pull(&git.PullOptions{RemoteName: "origin"})
+	if err != nil && err != git.NoErrAlreadyUpToDate {
+		log.Printf("Error pulling updates: %v", err)
+		return
+	}
+
+	newHead, err := repo.Head()
+	if err != nil {
+		log.Printf("Error getting new HEAD: %v", err)
+		return
+	}
+	newHash := newHead.Hash().String()
+
+	if currentHash != newHash {
+		log.Println("Updates pulled successfully")
+		restartApp()
+	} else {
+		log.Println("No updates available")
+	}
 }
 
 func (app *DashboardApp) Start() {

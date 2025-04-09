@@ -139,7 +139,7 @@ const App = () => {
   const handleDataSourceUpdates = () => {
     (async () => {
       if (config) {
-        console.log({config});
+       // console.log({config});
         const fetchPromises = config.pluginsEnabled.map(async (source: string) => {
           try {
             const sourceResponse = await fetch(`http://localhost:8080/api/data/${source}`);
@@ -174,7 +174,7 @@ const App = () => {
   };
 
   const isPluginEnabled = (source: string): boolean => {
-    return config?.pluginsEnabled.includes(source) || false;
+    return config?.pluginsEnabled.includes(source.toLowerCase()) || false;
   }
 
   useEffect(() => {
@@ -250,7 +250,8 @@ const App = () => {
       }
       setUpdatedConfig(false);
     }
-    if (!config?.updateFrequency) return;
+
+    if (!config?.updateFrequency && !config?.autoUpdateEnabled) return;
     
     const intervals: Record<string, number> = {};
     
@@ -279,6 +280,28 @@ const App = () => {
         }, seconds * 1000); // Convert to milliseconds
       }
     });
+
+    if (config.autoUpdateEnabled) {
+      intervals["availableSources"] = window.setInterval(async () => {
+        try {
+          const availableResponse = await fetch('http://localhost:8080/api/datasources');
+          if (!availableResponse.ok) {
+            throw new Error(`Failed to fetch datasources: ${availableResponse.status} ${availableResponse.statusText}`);
+          }
+          const dataJson  = await availableResponse.json();
+          const availableSources = Object.keys(dataJson).map(key => {
+            return {
+              name: dataJson[key].name,
+              description: dataJson[key].description,
+              isNew: dataJson[key].isNew,
+            }
+          });
+          setAvailableSources(availableSources);
+        } catch (err) {
+          console.error(`Error refreshing available sources:`, err);
+        }
+      }, config.autoUpdateFrequency * 1000); 
+    }
     
     return () => {
       Object.values(intervals).forEach(interval => window.clearInterval(interval));
