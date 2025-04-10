@@ -21,7 +21,7 @@
         "pathToData": "drinks.[0].strDrinkThumb",
         "description": "Cocktail pictures",
         "typeOfData": 2,
-        "isNew": true
+        "isNew": false
     },
     "jokes": {
         "name": "Jokes",
@@ -29,6 +29,14 @@
         "pathToData": "joke",
         "description": "Dad jokes",
         "typeOfData": 1,
+        "isNew": false
+    },
+    "random": {
+        "name": "Random",
+        "baseUrl": "https://randomuser.me/api/",
+        "pathToData": "results.[0].picture.medium",
+        "description": "Random users pictures",
+        "typeOfData": 2,
         "isNew": true
     }
 }
