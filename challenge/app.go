@@ -120,7 +120,7 @@ func (app *DashboardApp) checkForUpdates() {
 
 	log.Println("Checking for code updates...")
 
-	repoPath := "/path/to/your/git/repository"
+	repoPath := "https://github.com/MosesHoldings/nametag-challenge"
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
 		log.Printf("Error opening git repository: %v", err)
