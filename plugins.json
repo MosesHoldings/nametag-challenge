@@ -38,5 +38,12 @@
         "description": "Random users pictures",
         "typeOfData": 2,
         "isNew": true
+    },
+    "facts": {
+        "name": "Facts",
+        "baseUrl": "https://randomuser.me/api/",
+        "pathToData": "fact",
+        "description": "Cat facts",
+        "typeOfData": 2,
+        "isNew": true
     }
-}
