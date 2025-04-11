@@ -134,31 +134,15 @@ func (app *DashboardApp) checkForUpdates() {
 		return
 	}
 
-	head, err := repo.Head()
-	if err != nil {
-		log.Printf("Error getting HEAD: %v", err)
-		return
-	}
-	currentHash := head.Hash().String()
-
-	err = worktree.Pull(&git.PullOptions{RemoteName: "origin", Force: false})
+	err = worktree.Pull(&git.PullOptions{RemoteName: "origin"})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		log.Printf("Error pulling updates: %v", err)
 		return
-	}
-
-	newHead, err := repo.Head()
-	if err != nil {
-		log.Printf("Error getting new HEAD: %v", err)
-		return
-	}
-	newHash := newHead.Hash().String()
-
-	if currentHash != newHash {
+	} else if err == git.NoErrAlreadyUpToDate {
+		log.Println("No updates available")
+	} else {
 		log.Println("Updates pulled successfully")
 		restartApp()
-	} else {
-		log.Println("No updates available")
 	}
 }
 
