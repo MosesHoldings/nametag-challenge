@@ -26,9 +26,10 @@ type DashboardApp struct {
 	dataDir          string
 	configFile       string
 	pluginsFile      string
+	pathToRepo       string
 }
 
-func NewDashboardApp() *DashboardApp {
+func NewDashboardApp(url string) *DashboardApp {
 	app := &DashboardApp{
 		DataSources:      make(map[string]pl.DataSource),
 		AvailableSources: make(map[string]pl.DataSource),
@@ -37,6 +38,7 @@ func NewDashboardApp() *DashboardApp {
 		dataDir:          "data",
 		configFile:       "config.json",
 		pluginsFile:      "plugins.json",
+		pathToRepo:       url,
 	}
 
 	if err := os.MkdirAll(app.dataDir, 0755); err != nil {
@@ -120,8 +122,7 @@ func (app *DashboardApp) checkForUpdates() {
 
 	log.Println("Checking for code updates...")
 
-	repoPath := "https://github.com/MosesHoldings/nametag-challenge"
-	repo, err := git.PlainOpen(repoPath)
+	repo, err := git.PlainOpen(app.pathToRepo)
 	if err != nil {
 		log.Printf("Error opening git repository: %v", err)
 		return
