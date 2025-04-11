@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardHeader, CardContent, CardActions, Typography, Box } from '@mui/material';
+import { Card, CardHeader, CardContent, CardActions, Typography } from '@mui/material';
 
 interface WidgetContainerProps {
   title: string;
