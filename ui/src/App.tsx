@@ -5,7 +5,6 @@ import {
   Button,
   CircularProgress, 
   Container, 
-  IconButton,
   List,
   ListItem,
   ListItemButton,
@@ -14,8 +13,6 @@ import {
   Stack,
   Typography 
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import StarIcon from '@mui/icons-material/Star';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -399,12 +396,12 @@ const App = () => {
                       key={source.name}
                       secondaryAction={
                         <>
-                          <IconButton edge="end" aria-label="edit" onClick={() => { setSelectedEditPlugin(dataSources[source.name]); handleEditClick() }}>
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton edge="end" aria-label="disable" onClick={() => { setSelectedPluginName(source.name); handleDisableClick() }}>
-                            <DeleteIcon />
-                          </IconButton>
+                          <Button aria-label="edit" onClick={() => { setSelectedEditPlugin(dataSources[source.name]); handleEditClick() }}>
+                            EditIcon
+                          </Button>
+                          <Button aria-label="disable" onClick={() => { setSelectedPluginName(source.name); handleDisableClick() }}>
+                            Remove
+                          </Button>
                         </>
                       }
                       disablePadding
@@ -417,9 +414,9 @@ const App = () => {
                   <ListItem
                     key={source.name}
                     secondaryAction={
-                      <IconButton edge="end" aria-label="edit" onClick={() => { setSelectedPlugin(source); handleClick()}}>
-                          <AddIcon />
-                        </IconButton>
+                      <Button aria-label="add" onClick={() => { setSelectedPlugin(source); handleClick()}}>
+                          Add
+                        </Button>
                     }
                     disablePadding
                   >

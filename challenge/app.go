@@ -141,7 +141,7 @@ func (app *DashboardApp) checkForUpdates() {
 	}
 	currentHash := head.Hash().String()
 
-	err = worktree.Pull(&git.PullOptions{RemoteName: "origin"})
+	err = worktree.Pull(&git.PullOptions{RemoteName: "origin", Force: false})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		log.Printf("Error pulling updates: %v", err)
 		return
