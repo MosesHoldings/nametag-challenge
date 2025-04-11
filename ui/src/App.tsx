@@ -25,6 +25,7 @@ import { Config, DataSource, DataSourceResponse } from './types';
 import ConfirmationDialog from './components/ConfirmationDialog';
 import ConfirmDisableDialog from './components/ConfirmDisableDialog';
 import EditDialog from './components/EditDialog';
+import EditConfigDialog from './components/EditConfigDialog';
 
 const theme = createTheme({
     palette: {
@@ -52,6 +53,7 @@ const App = () => {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [disableDialogOpen, setDisableDialogOpen] = useState<boolean>(false);
   const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
+  const [editConfigDialogOpen, setEditConfigDialogOpen] = useState<boolean>(false);
   const [selectedPluginName, setSelectedPluginName] = useState<string>('');
   const [selectedPlugin, setSelectedPlugin] = useState<DataSource>();
   const [selectedEditPlugin, setSelectedEditPlugin] = useState<DataSourceResponse>();
@@ -81,8 +83,7 @@ const App = () => {
 
   const handleEditCloseDialog = (value: boolean, frequency?: number) => {
     setEditDialogOpen(false);
-    console.log('the return value is: ', value);
-    console.log({frequency});
+    
     if (value && !!frequency && selectedEditPlugin) {
       const updatedFrequency = {
         ...config?.updateFrequency,
@@ -115,6 +116,33 @@ const App = () => {
         updateFrequency: updatedFrequency,
       };
       handleConfigUpdate(newConfig);
+    }
+  };
+  
+  const handleEditConfigClick = () => {
+    setEditConfigDialogOpen(true);
+  };
+
+  const handleEditConfigCloseDialog = (cancel: boolean, updateEnabled?: boolean, updateFrequency?: number) => {
+    setEditConfigDialogOpen(false);
+
+    if (!cancel) {
+      let newConfig: Config;
+      if (updateEnabled && !!updateFrequency) {
+        newConfig = {
+          ...config!,
+          autoUpdateEnabled: updateEnabled,
+          autoUpdateFrequency: updateFrequency * 3600,
+        };
+        handleConfigUpdate(newConfig);
+      } else {
+        newConfig = {
+          ...config!,
+          autoUpdateEnabled: false,
+          autoUpdateFrequency: 0,
+        };
+        handleConfigUpdate(newConfig);
+      }
     }
   };
 
@@ -362,62 +390,70 @@ const App = () => {
           </Container>
         </Box>
         <Stack direction="row" spacing={2}>
-          <List sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
-            {availableSources.map((source) => {
-              if (isPluginEnabled(source.name)) {
+          <Stack direction="column" spacing={5}>
+            <List sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
+              {availableSources.map((source) => {
+                if (isPluginEnabled(source.name)) {
+                  return (
+                    <ListItem
+                      key={source.name}
+                      secondaryAction={
+                        <>
+                          <IconButton edge="end" aria-label="edit" onClick={() => { setSelectedEditPlugin(dataSources[source.name]); handleEditClick() }}>
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton edge="end" aria-label="disable" onClick={() => { setSelectedPluginName(source.name); handleDisableClick() }}>
+                            <DeleteIcon />
+                          </IconButton>
+                        </>
+                      }
+                      disablePadding
+                    >
+                      <ListItemText id={source.name} inset primary={source.name} secondary={source.description}/>
+                    </ListItem>
+                  );
+                } else {
                 return (
                   <ListItem
                     key={source.name}
                     secondaryAction={
-                      <>
-                        <IconButton edge="end" aria-label="edit" onClick={() => {setSelectedEditPlugin(dataSources[source.name]); handleEditClick()}}>
-                          <EditIcon />
+                      <IconButton edge="end" aria-label="edit" onClick={() => { setSelectedPlugin(source); handleClick()}}>
+                          <AddIcon />
                         </IconButton>
-                        <IconButton edge="end" aria-label="disable" onClick={() => { setSelectedPluginName(source.name); handleDisableClick()}}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </>
                     }
                     disablePadding
                   >
-                    <ListItemText id={source.name} inset primary={source.name} secondary={source.description}/>
-                  </ListItem>
-                );
-              } else {
-              return (
-                <ListItem
-                  key={source.name}
-                  secondaryAction={
-                    <IconButton edge="end" aria-label="edit" onClick={() => { setSelectedPlugin(source); handleClick()}}>
-                        <AddIcon />
-                      </IconButton>
-                  }
-                  disablePadding
-                >
-                  {source.isNew ? (
-                    <ListItemButton role={undefined} dense>
-                    
-                      <ListItemIcon>
-                        <StarIcon />
-                      </ListItemIcon>
-                      <ListItemText id={source.name} primary={source.name} secondary={source.description}/>
-                    
-                    </ListItemButton>
-                  )
-                  : (
+                    {source.isNew ? (
                       <ListItemButton role={undefined} dense>
-                        <ListItemText id={source.name} inset primary={source.name} secondary={source.description}/>
+                      
+                        <ListItemIcon>
+                          <StarIcon />
+                        </ListItemIcon>
+                        <ListItemText id={source.name} primary={source.name} secondary={source.description}/>
                       
                       </ListItemButton>
                     )
-                    }
-                </ListItem>
-              );
-            }})}
-          </List>
+                    : (
+                        <ListItemButton role={undefined} dense>
+                          <ListItemText id={source.name} inset primary={source.name} secondary={source.description}/>
+                        
+                        </ListItemButton>
+                      )
+                      }
+                  </ListItem>
+                );
+              }})}
+            </List>
+            <div className="ml-4" >
+              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => handleEditConfigClick() }>
+                Settings
+              </Button>
+            </div>
+          </Stack>
           <ConfirmationDialog open={dialogOpen} onClose={handleCloseDialog} plugin={selectedPlugin} />
           <ConfirmDisableDialog open={disableDialogOpen} onClose={handleDisbaleCloseDialog} pluginName={selectedPluginName} />
           <EditDialog open={editDialogOpen} onClose={handleEditCloseDialog} editPlugin={selectedEditPlugin} />
+          <EditConfigDialog open={editConfigDialogOpen} onClose={handleEditConfigCloseDialog} config={config} />
             
           <Container maxWidth="md" className="py-8">
             <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
