@@ -3,14 +3,12 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	nc "example/challenge"
 )
 
 func main() {
-	url := os.Getenv("PATH_TO_NAMETAG_REPO")
-	app := nc.NewDashboardApp(url)
+	app := nc.NewDashboardApp()
 	app.Start()
 
 	app.InitializeRoutes()
