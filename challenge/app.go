@@ -26,10 +26,9 @@ type DashboardApp struct {
 	dataDir          string
 	configFile       string
 	pluginsFile      string
-	pathToRepo       string
 }
 
-func NewDashboardApp(url string) *DashboardApp {
+func NewDashboardApp() *DashboardApp {
 	app := &DashboardApp{
 		DataSources:      make(map[string]pl.DataSource),
 		AvailableSources: make(map[string]pl.DataSource),
@@ -38,7 +37,6 @@ func NewDashboardApp(url string) *DashboardApp {
 		dataDir:          "data",
 		configFile:       "config.json",
 		pluginsFile:      "plugins.json",
-		pathToRepo:       url,
 	}
 
 	if err := os.MkdirAll(app.dataDir, 0755); err != nil {
@@ -122,7 +120,7 @@ func (app *DashboardApp) checkForUpdates() {
 
 	log.Println("Checking for code updates...")
 
-	repo, err := git.PlainOpen(app.pathToRepo)
+	repo, err := git.PlainOpen(".")
 	if err != nil {
 		log.Printf("Error opening git repository: %v", err)
 		return
@@ -134,16 +132,74 @@ func (app *DashboardApp) checkForUpdates() {
 		return
 	}
 
-	err = worktree.Pull(&git.PullOptions{RemoteName: "origin"})
-	if err != nil && err != git.NoErrAlreadyUpToDate {
-		log.Printf("Error pulling updates: %v", err)
+	head, err := repo.Head()
+	if err != nil {
+		log.Printf("Error getting HEAD: %v", err)
 		return
-	} else if err == git.NoErrAlreadyUpToDate {
-		log.Println("No updates available")
-	} else {
-		log.Println("Updates pulled successfully")
-		restartApp()
 	}
+	currentHash := head.Hash()
+
+	fetchOptions := &git.FetchOptions{
+		RemoteName: "origin",
+		Progress:   os.Stdout,
+	}
+
+	log.Println("Fetching updates...")
+	err = repo.Fetch(fetchOptions)
+	if err != nil && err != git.NoErrAlreadyUpToDate {
+		log.Printf("Error fetching updates: %v", err)
+		return
+	}
+
+	remoteBranch, err := repo.Reference("refs/remotes/origin/main", true)
+	if err != nil {
+		log.Printf("Error getting remote branch reference: %v", err)
+		return
+	}
+
+	remoteHash := remoteBranch.Hash()
+
+	if currentHash.String() == remoteHash.String() {
+		log.Println("No updates available")
+		return
+	}
+
+	log.Printf("Updates available. Current: %s, Remote: %s\n", currentHash.String(), remoteHash.String())
+
+	pullOptions := &git.PullOptions{
+		RemoteName:    "origin",
+		SingleBranch:  true,
+		Progress:      os.Stdout,
+		ReferenceName: remoteBranch.Name(),
+	}
+
+	log.Println("Pulling updates using merge strategy...")
+	err = worktree.Pull(pullOptions)
+
+	if err == git.NoErrAlreadyUpToDate {
+		log.Println("No updates available")
+		return
+	} else if err != nil {
+		if err == git.ErrNonFastForwardUpdate {
+			log.Printf("Error non-fast-forward update detected: %v", err)
+		} else {
+			log.Printf("Error pulling updates: %v", err)
+		}
+	}
+
+	newHead, err := repo.Head()
+	if err != nil {
+		log.Printf("Error getting new HEAD: %v", err)
+	}
+	newHash := newHead.Hash()
+
+	if currentHash.String() != newHash.String() {
+		log.Printf("Updates successfully pulled. New hash: %s\n", newHash.String())
+		restartApp()
+		return
+	}
+
+	log.Println("No changes after pull")
 }
 
 func (app *DashboardApp) Start() {
