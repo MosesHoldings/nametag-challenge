@@ -13,7 +13,6 @@ import {
   Stack,
   Typography 
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
 import StarIcon from '@mui/icons-material/Star';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -397,7 +396,7 @@ const App = () => {
                       secondaryAction={
                         <>
                           <Button aria-label="edit" onClick={() => { setSelectedEditPlugin(dataSources[source.name]); handleEditClick() }}>
-                            EditIcon
+                            Edit
                           </Button>
                           <Button aria-label="disable" onClick={() => { setSelectedPluginName(source.name); handleDisableClick() }}>
                             Remove
@@ -442,8 +441,8 @@ const App = () => {
               }})}
             </List>
             <div className="ml-4" >
-              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => handleEditConfigClick() }>
-                Settings
+              <Button variant="outlined" onClick={() => handleEditConfigClick() }>
+                Edit Settings
               </Button>
             </div>
           </Stack>
